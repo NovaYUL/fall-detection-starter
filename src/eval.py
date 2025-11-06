@@ -6,6 +6,8 @@ from sklearn.metrics import classification_report, roc_auc_score
 from src.datasets.fall_dataset import FallSeqDataset
 from src.models.lstm_fall import LSTMClassifier
 from src.models.inception_time import InceptionTime
+from src.models.tsai_lstm import TsaiLSTMClassifier
+from src.models.tsai_inception import TsaiInceptionTimeClassifier
 
 def collate(batch):
     Xs, ys = zip(*batch)
@@ -21,6 +23,10 @@ def build_model(ckpt, input_dim, device):
         it_depth = args.get("it_depth", 6)
         dropout = args.get("dropout", 0.2)
         model = InceptionTime(in_channels=input_dim, num_blocks=it_depth, out_channels=it_filters, bottleneck_channels=min(32, max(8, input_dim//8)), n_classes=1, dropout=dropout).to(device)
+    elif model_type == "tsai_lstm":
+        model = TsaiLSTMClassifier(input_dim=input_dim).to(device)
+    elif model_type == "tsai_inception":
+        model = TsaiInceptionTimeClassifier(input_dim=input_dim).to(device)
     else:
         hidden = args.get("hidden", 128)
         layers = args.get("layers", 2)
@@ -54,7 +60,7 @@ def main():
     ys, ps = [], []
     with torch.no_grad():
         for X, y in loader:
-            if model_type == "inception":
+            if model_type in {"inception", "tsai_lstm", "tsai_inception"}:
                 X = X.permute(0, 2, 1)
             X = X.to(args.device)
             logits = model(X)
