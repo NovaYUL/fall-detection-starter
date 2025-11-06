@@ -13,3 +13,5 @@ mmpose>=1.3.0
 mmcv>=2.0.1
 mmdet>=3.2.0
 mmengine>=0.10.0
+# Time-series models (open-source)
+tsai>=0.3.0

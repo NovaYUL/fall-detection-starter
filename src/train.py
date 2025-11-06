@@ -9,6 +9,8 @@ from sklearn.metrics import precision_recall_fscore_support, roc_auc_score
 from src.datasets.fall_dataset import FallSeqDataset
 from src.models.lstm_fall import LSTMClassifier
 from src.models.inception_time import InceptionTime
+from src.models.tsai_lstm import TsaiLSTMClassifier
+from src.models.tsai_inception import TsaiInceptionTimeClassifier
 
 def collate(batch):
     Xs, ys = zip(*batch)
@@ -21,7 +23,7 @@ def evaluate(model, loader, device, model_type):
     ys, ps = [], []
     with torch.no_grad():
         for X, y in loader:
-            if model_type == "inception":
+            if model_type in {"inception", "tsai_lstm", "tsai_inception"}:
                 X = X.permute(0, 2, 1)
             X = X.to(device)
             y = y.to(device)
@@ -44,7 +46,7 @@ def main():
     ap.add_argument("--csv-train", required=True)
     ap.add_argument("--csv-val", required=True)
     ap.add_argument("--npz-root", required=True)
-    ap.add_argument("--model", default="lstm", choices=["lstm","inception"])
+    ap.add_argument("--model", default="lstm", choices=["lstm","inception","tsai_lstm","tsai_inception"])
     ap.add_argument("--seq-len", type=int, default=64)
     ap.add_argument("--seq-step", type=int, default=16)
     ap.add_argument("--batch-size", type=int, default=64)
@@ -75,8 +77,12 @@ def main():
 
     if args.model == "lstm":
         model = LSTMClassifier(input_dim, hidden=args.hidden, layers=args.layers, dropout=args.dropout, bidirectional=args.bidirectional).to(args.device)
-    else:
+    elif args.model == "inception":
         model = InceptionTime(in_channels=input_dim, num_blocks=args.it_depth, out_channels=args.it_filters, bottleneck_channels=min(32, max(8, input_dim//8)), n_classes=1, dropout=args.dropout).to(args.device)
+    elif args.model == "tsai_lstm":
+        model = TsaiLSTMClassifier(input_dim=input_dim).to(args.device)
+    else:
+        model = TsaiInceptionTimeClassifier(input_dim=input_dim).to(args.device)
 
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
     pos_weight = torch.tensor([args.class_weight], dtype=torch.float32, device=args.device)
@@ -92,7 +98,7 @@ def main():
         model.train()
         total_loss = 0.0
         for X, y in train_loader:
-            if args.model == "inception":
+            if args.model in {"inception", "tsai_lstm", "tsai_inception"}:
                 X = X.permute(0, 2, 1)
             X = X.to(args.device)
             y = y.to(args.device)

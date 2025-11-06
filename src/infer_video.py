@@ -4,6 +4,8 @@ import torch
 import cv2
 from src.models.lstm_fall import LSTMClassifier
 from src.models.inception_time import InceptionTime
+from src.models.tsai_lstm import TsaiLSTMClassifier
+from src.models.tsai_inception import TsaiInceptionTimeClassifier
 from src.utils.feature_engineering import build_features
 from tools.pose_extract import extract_keypoints_from_video
 
@@ -24,6 +26,10 @@ def build_model(ckpt, input_dim, device):
         it_depth = args.get("it_depth", 6)
         dropout = args.get("dropout", 0.2)
         model = InceptionTime(in_channels=input_dim, num_blocks=it_depth, out_channels=it_filters, bottleneck_channels=min(32, max(8, input_dim//8)), n_classes=1, dropout=dropout).to(device)
+    elif model_type == "tsai_lstm":
+        model = TsaiLSTMClassifier(input_dim=input_dim).to(device)
+    elif model_type == "tsai_inception":
+        model = TsaiInceptionTimeClassifier(input_dim=input_dim).to(device)
     else:
         hidden = args.get("hidden", 128)
         layers = args.get("layers", 2)
@@ -67,7 +73,7 @@ def main():
             if e > X.shape[0]:
                 break
             xw = X[s:e]
-            if model_type == "inception":
+            if model_type in {"inception", "tsai_lstm", "tsai_inception"}:
                 xw = np.transpose(xw, (1, 0))
             xw = torch.tensor(xw[None, ...], dtype=torch.float32, device=args.device)
             p = torch.sigmoid(model(xw)).item()
