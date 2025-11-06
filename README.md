@@ -1,8 +1,8 @@
-# Fall Detection Starter (MMPose + LSTM/InceptionTime, PyTorch)
+# Fall Detection Starter (MMPose + LSTM/InceptionTime/tsai, PyTorch)
 
 This repo provides a ready-to-run pipeline for fall detection from videos by fusing:
 - 2D human pose estimation (MMPose) to extract keypoints over time
-- A time-series classifier (LSTM or InceptionTime) to detect falls from keypoint sequences
+- A time-series classifier (LSTM / InceptionTime / tsai variants) to detect falls from keypoint sequences
 
 Features:
 - Video -> keypoints (npz) via MMPoseInferencer
@@ -86,7 +86,7 @@ Outputs per video:
 
 Default: single person per frame (largest bbox). For multi-person scenes, integrate a tracker and persist per-person tracks.
 
-## 4) Train (LSTM or InceptionTime)
+## 4) Train (LSTM / InceptionTime / tsai)
 
 LSTM baseline:
 
@@ -114,6 +114,34 @@ python -m src.train \
   --seq-len 128 --seq-step 16 \
   --batch-size 64 --epochs 40 \
   --lr 1e-3 --it-filters 32 --it-depth 6 \
+  --use-vel --use-conf --norm shoulder \
+  --class-weight 1.0
+```
+
+tsai baselines (LSTMPlus, InceptionTime):
+
+```bash
+# LSTMPlus (tsai)
+python -m src.train \
+  --csv-train datasets/train.csv \
+  --csv-val datasets/val.csv \
+  --npz-root data/processed \
+  --model tsai_lstm \
+  --seq-len 64 --seq-step 16 \
+  --batch-size 64 --epochs 30 \
+  --lr 1e-3 \
+  --use-vel --use-conf --norm shoulder \
+  --class-weight 1.0
+
+# InceptionTime (tsai)
+python -m src.train \
+  --csv-train datasets/train.csv \
+  --csv-val datasets/val.csv \
+  --npz-root data/processed \
+  --model tsai_inception \
+  --seq-len 128 --seq-step 16 \
+  --batch-size 64 --epochs 40 \
+  --lr 1e-3 \
   --use-vel --use-conf --norm shoulder \
   --class-weight 1.0
 ```
@@ -157,3 +185,12 @@ It will:
 - Class imbalance: tune `--class-weight`, or implement focal loss/oversampling.
 - Subject splits (if available) yield better generalization.
 - Multi-person: add a tracker (ByteTrack/DeepSORT) to export per-track sequences.
+
+## 8) References & Attribution
+
+- MMPose (OpenMMLab): https://github.com/open-mmlab/mmpose
+- RTMPose (MMPose project): https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose
+- MMDetection / RTMDet: https://github.com/open-mmlab/mmdetection
+- tsai (timeseriesAI): https://github.com/timeseriesAI/tsai
+- LSTM: Hochreiter & Schmidhuber, "Long Short-Term Memory," 1997
+- InceptionTime: H. I. Fawaz et al., "InceptionTime: Finding AlexNet for Time Series Classification," 2019
